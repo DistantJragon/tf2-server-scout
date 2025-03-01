@@ -1,51 +1,9 @@
 import json
-from typing import Any, TypedDict
+from copy import deepcopy
 
-from filters import Filter, get_default_filters
-from server_sort import (
-    SortServer,
-    SortServerWritable,
-    convert_sort_object,
-    convert_sort_object_writeable,
-    get_default_sort,
-)
-
-
-class DisplayOptions(TypedDict):
-    server_id: bool
-    host: bool
-    port: bool
-    ip: bool
-    name: bool
-    name_short: bool
-    region: bool
-    cc: bool
-    players: bool
-    max_players: bool
-    bots: bool
-    map: bool
-    game_types: bool
-    latitude: bool
-    longitude: bool
-    distance: bool
-    ping: bool
-    ip_port: bool
-    join_url: bool
-
-
-class Options(TypedDict):
-    filters: Filter
-    server_sort: SortServer
-    display: DisplayOptions
-    misc: dict[str, Any]
-
-
-class OptionsWritable(TypedDict):
-    filters: Filter
-    server_sort: SortServerWritable
-    display: DisplayOptions
-    misc: dict[str, Any]
-
+from filters import get_default_filters
+from models import Options
+from server_sort import get_default_sort
 
 DEFAULT_OPTIONS: Options = {
     "filters": get_default_filters(),
@@ -67,7 +25,9 @@ DEFAULT_OPTIONS: Options = {
         "latitude": False,
         "longitude": False,
         "distance": False,
+        "humans": False,
         "ping": True,
+        "slots": False,
         "ip_port": False,
         "join_url": False,
     },
@@ -88,29 +48,14 @@ DEFAULT_OPTIONS: Options = {
 }
 
 
-def convert_options_object(options: Options) -> OptionsWritable:
-    return OptionsWritable(
-        filters=options["filters"],
-        server_sort=convert_sort_object(options["server_sort"]),
-        display=options["display"],
-        misc=options["misc"],
-    )
-
-
-def convert_options_object_writeable(options_writable: OptionsWritable) -> Options:
-    return Options(
-        filters=options_writable["filters"],
-        server_sort=convert_sort_object_writeable(
-            options_writable["server_sort"]),
-        display=options_writable["display"],
-        misc=options_writable["misc"],
-    )
+def get_default_options() -> Options:
+    return deepcopy(DEFAULT_OPTIONS)
 
 
 def write_options(options: Options):
     try:
         with open("options.json", "w") as f:
-            json.dump(convert_options_object(options), f, indent=4)
+            json.dump(options, f, indent=4)
     except Exception as e:
         print(f"Error writing options file: {e}")
 
@@ -118,13 +63,9 @@ def write_options(options: Options):
 def read_options() -> Options:
     try:
         with open("options.json", "r") as f:
-            options: OptionsWritable = json.load(f)
-        return convert_options_object_writeable(options)
+            options: Options = json.load(f)
+        return options
     except FileNotFoundError:
         print("No options file found, creating a new one.")
         write_options(DEFAULT_OPTIONS)
-        return DEFAULT_OPTIONS.copy()
-
-
-def get_default_options() -> Options:
-    return DEFAULT_OPTIONS.copy()
+        return get_default_options()
