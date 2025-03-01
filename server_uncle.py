@@ -9,8 +9,7 @@ from platform import system
 import a2s
 import requests
 
-from options import Options
-from server_types import Server
+from models import Server
 
 COUNTRY_EMOJIS: dict[str, str] = {
     "ca": "🇨🇦",
@@ -99,6 +98,10 @@ def ping_multiple_servers_uncle(servers: list[Server]) -> dict[str, float]:
     return results
 
 
+def compile_join_url(server: Server) -> str:
+    return f"steam://connect/{server['ip']}:{server['port']}"
+
+
 def get_uncle(
     ping: bool, calculate_max_distance: bool
 ) -> tuple[list[Server], float | None]:
@@ -123,15 +126,23 @@ def get_uncle(
 
         max_distance_filter = estimate_max_distance(servers)
 
+    for server in servers:
+        server["slots"] = server["max_players"] - server["players"]
+        server["ip_port"] = f"{server['ip']}:{server['port']}"
+        server["join_url"] = compile_join_url(server)
+
     return servers, max_distance_filter
 
-def update_cache_uncle() -> list[Server]:
+
+def update_cache_uncle(
+    calculate_max_distance: bool,
+) -> tuple[list[Server], float | None]:
     """
     Update the cache of servers from the UncleTopia API.
     """
-    servers, _ = get_uncle(False, False)
+    servers, new_max_distance = get_uncle(False, calculate_max_distance)
     write_servers_to_file(servers)
-    return servers
+    return servers, new_max_distance
 
 
 def update_server_with_steam_info(server: Server):
@@ -143,9 +154,10 @@ def update_server_with_steam_info(server: Server):
         info = a2s.info((server["ip"], server["port"]))
         server["players"] = info.player_count
         server["max_players"] = info.max_players
+        server["slots"] = info.max_players - info.player_count
         server["bots"] = info.bot_count
         server["map"] = info.map_name
-        server["ping"] = info.ping
+        server["ping"] = info.ping * 1000
     except Exception as e:
         print(f"Error updating server with steam info: {e}")
 
@@ -165,10 +177,6 @@ def update_servers_with_steam_info(servers: list[Server]):
                 future.result()
             except Exception as e:
                 print(f"Error updating server with steam info: {e}")
-
-
-def compile_join_url(server: Server) -> str:
-    return f"steam://connect/{server['ip']}:{server['port']}"
 
 
 def join_server(server: Server | str):

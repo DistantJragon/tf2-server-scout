@@ -1,43 +1,28 @@
 import json
-from enum import Enum
-from typing import Any, TypeAlias
+from copy import deepcopy
 
-from server_types import Server
+from models import ListFilter, RangeFilter, Server, ServerFilter
 
-Filter: TypeAlias = dict[str, dict[str, Any]]
-
-
-class FilterType(Enum):
-    LIST = 1
-    RANGE = 2
-
-
-FILTER_TYPES: dict[str, FilterType] = {
-    "server_id": FilterType.LIST,
-    "region": FilterType.LIST,
-    "cc": FilterType.LIST,
-    "players": FilterType.RANGE,
-    "max_players": FilterType.RANGE,
-    "bots": FilterType.RANGE,
-    "map": FilterType.LIST,
-    "distance": FilterType.RANGE,
-    "ping": FilterType.RANGE,
-}
-
-DEFAULT_FILTERS: Filter = {
-    "server_id": {"list": [], "blacklist": True},
-    "region": {"list": [], "blacklist": True},
-    "cc": {"list": [], "blacklist": True},
+DEFAULT_FILTERS: ServerFilter = {
+    "server_id": {"values": [], "exclude": True},
+    "region": {"values": [], "exclude": True},
+    "cc": {"values": [], "exclude": True},
     "players": {"min": None, "max": None},
     "max_players": {"min": None, "max": None},
     "bots": {"min": None, "max": None},
-    "map": {"list": [], "blacklist": True},
+    "map": {"values": [], "exclude": True},
     "distance": {"min": None, "max": None},
     "ping": {"min": None, "max": 150.0},
+    "slots": {"min": None, "max": None},
+    "ip_port": {"values": [], "exclude": True},
 }
 
 
-def write_filters(filters: Filter):
+def get_default_filters() -> ServerFilter:
+    return deepcopy(DEFAULT_FILTERS)
+
+
+def write_filters(filters: ServerFilter):
     try:
         with open("filters.json", "w") as f:
             json.dump(filters, f, indent=4)
@@ -45,10 +30,10 @@ def write_filters(filters: Filter):
         print(f"Error writing filters file: {e}")
 
 
-def read_filters() -> Filter:
+def read_filters() -> ServerFilter:
     try:
         with open("filters.json", "r") as f:
-            filters: Filter = json.load(f)
+            filters: ServerFilter = json.load(f)
         return filters
     except FileNotFoundError:
         print("No filters file found, creating a new one.")
@@ -56,39 +41,34 @@ def read_filters() -> Filter:
         return DEFAULT_FILTERS.copy()
 
 
-def apply_filters(servers: list[Server], filters: Filter) -> list[Server]:
+def apply_filters(servers: list[Server], server_filter: ServerFilter) -> list[Server]:
     filtered_servers: list[Server] = []
     for server in servers:
         failed = False
         for key, item in server.items():
             if item is None:
                 continue
-            if key not in filters:
+            if key not in server_filter:
                 continue
-            if FILTER_TYPES[key] == FilterType.LIST:
-                in_list = item in filters[key]["list"]
-                if in_list and filters[key]["blacklist"]:
+            if "values" in server_filter[key]:
+                list_filter: ListFilter = server_filter[key]
+                in_list = item in list_filter["values"]
+                if in_list and list_filter["exclude"]:
                     failed = True
                     break
-                if not in_list and not filters[key]["blacklist"]:
+                if not in_list and not list_filter["exclude"]:
                     failed = True
                     break
-            elif FILTER_TYPES[key] == FilterType.RANGE:
-                if filters[key]["min"] is not None and item < filters[key]["min"]:
+            elif "min" in server_filter[key]:
+                range_filter: RangeFilter = server_filter[key]
+                if range_filter["min"] is not None and item < range_filter["min"]:
                     failed = True
                     break
-                if filters[key]["max"] is not None and item > filters[key]["max"]:
+                if range_filter["max"] is not None and item > range_filter["max"]:
                     failed = True
                     break
+
         if not failed:
             filtered_servers.append(server)
 
     return filtered_servers
-
-
-def get_default_filters() -> Filter:
-    return DEFAULT_FILTERS.copy()
-
-
-def get_filter_types() -> dict[str, FilterType]:
-    return FILTER_TYPES.copy()

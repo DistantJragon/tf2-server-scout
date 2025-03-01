@@ -1,6 +1,6 @@
 import numpy as np
 
-from server_types import Server
+from models import Server
 
 UNCLETOPIA_AUTO_KICK_LATENCY = 150  # Threshold latency in ms
 DEBUG_PRINT_PING_DISTANCE_PAIRS = (
