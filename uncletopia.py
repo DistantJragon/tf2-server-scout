@@ -2,6 +2,7 @@ import argparse
 
 from options import read_options, write_options
 from server_uncle import read_servers_from_file, update_cache_uncle
+from ui_menus import main_menu
 from ui_uncle import auto_join, quick_print
 
 # Parse arguments
@@ -41,13 +42,16 @@ _ = parser.add_argument(
 if __name__ == "__main__":
     args = parser.parse_args()
     options = read_options()
-    if args.refresh_interval is None:
-        args.refresh_interval = options["misc"]["refresh_interval"]
     server_list = []
     if options["misc"]["cache_uncletopia_state"]:
         server_list = read_servers_from_file()
         if not server_list:
-            server_list = update_cache_uncle()
+            print("No servers found in cache, updating cache")
+            server_list, new_max_distance = update_cache_uncle(
+                options["misc"]["auto_distance_calculation"]
+            )
+            if new_max_distance is not None:
+                options["filters"]["distance"]["max"] = new_max_distance
         if not server_list:
             print("Could not get server list from cache or API")
             exit(1)
@@ -57,6 +61,9 @@ if __name__ == "__main__":
 
     elif args.quick_print:
         quick_print(args, server_list, options)
+
+    else:
+        main_menu(args, server_list, options)
 
     # user_choice = None
     # user_quit = False

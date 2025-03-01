@@ -2,18 +2,15 @@ import shutil
 import time
 from typing import Any
 
-from filters import Filter, apply_filters
-from options import Options
-from server_sort import SortServer, sort_servers
-from server_types import Server
+from filters import apply_filters
+from models import Options, Server
+from server_sort import sort_servers
 from server_uncle import (
     compile_join_url,
     get_country_emoji,
     get_uncle,
     join_server,
-    read_servers_from_file,
     update_servers_with_steam_info,
-    write_servers_to_file,
 )
 
 
@@ -164,6 +161,9 @@ def auto_join(args: Any, servers: list[Server], options: Options):
         and filters["distance"]["max"] is None
     )
     misc = options["misc"]
+    refresh_interval: float = misc["refresh_interval"]
+    if args.refresh_interval is not None:
+        refresh_interval = float(args.refresh_interval)
     try:
         while not found_server:
             if misc["query_steam"]:
@@ -179,7 +179,7 @@ def auto_join(args: Any, servers: list[Server], options: Options):
             filtered_servers = apply_filters(servers, filters)
             if not filtered_servers:
                 print("No servers found, waiting for refresh")
-                time.sleep(args.refresh_interval)
+                time.sleep(refresh_interval)
                 continue
             sort_servers(filtered_servers, server_sort)
             found_server = True
@@ -192,30 +192,32 @@ def auto_join(args: Any, servers: list[Server], options: Options):
         print("User interrupted search")
 
 
-def quick_print(args: Any, servers: list[Server], options: Options, ):
+def quick_print(
+    args: Any,
+    servers: list[Server],
+    options: Options,
+):
     """
     Print all servers that fit the filters and exit.
     """
     filters = options["filters"]
     server_sort = options["server_sort"]
     misc = options["misc"]
-    ping_servers: bool = args.ping_servers or options["misc"]["always_ping"]
-    calculate_max_distance = (
-        options["misc"]["auto_distance_calculation"]
-        and filters["distance"]["max"] is None
-    )
     if misc["query_steam"]:
-        if servers is None:
-            servers = read_servers_from_file()
         update_servers_with_steam_info(servers)
     else:
+        ping_servers: bool = args.ping_servers or options["misc"]["always_ping"]
+        calculate_max_distance = (
+            options["misc"]["auto_distance_calculation"]
+            and filters["distance"]["max"] is None
+        )
         servers, new_max_distance = get_uncle(
             ping_servers, calculate_max_distance)
         if new_max_distance is not None:
             filters["distance"]["max"] = new_max_distance
     server_list = apply_filters(servers, filters)
-    sort_servers(server_list, server_sort)
     if server_list:
+        sort_servers(server_list, server_sort)
         for server in server_list:
             pretty_print_server(server, options)
 
