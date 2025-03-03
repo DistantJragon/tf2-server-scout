@@ -4,6 +4,7 @@ import os
 import re
 import subprocess
 import webbrowser
+from copy import deepcopy
 from platform import system
 
 import a2s
@@ -23,7 +24,7 @@ COUNTRY_EMOJIS: dict[str, str] = {
 }
 
 
-def write_servers_to_file(servers: list[Server]):
+def write_servers_to_file(servers: list[Server], dirty: bool = True):
     """
     Caches the servers to ./cache/servers.json
     Create cache directory if it doesn't exist.
@@ -33,6 +34,37 @@ def write_servers_to_file(servers: list[Server]):
         os.makedirs("cache")
     with open("cache/servers.json", "w") as file:
         json.dump(servers, file, indent=4)
+    if dirty:
+        with open("cache/dirty.info", "w") as file:
+            _ = file.write("")
+
+
+def check_cache_dirty() -> bool:
+    """
+    Check if the cache is dirty.
+    """
+    return os.path.exists("cache/dirty.info")
+
+
+def clean_write_servers_to_file(servers: list[Server]):
+    """
+    Caches the servers to ./cache/servers.json
+    Create cache directory if it doesn't exist.
+    Fills values that change with each request with unusual values so that the user can see that the data is old.
+    Will be slower, use other function if user may be trying use the program quickly.
+    """
+    servers_copy = deepcopy(servers)
+    for server in servers_copy:
+        server["players"] = -1
+        server["max_players"] = -1
+        server["bots"] = -1
+        server["ping"] = -1.0
+        server["slots"] = -1
+        server["map"] = "[Outdated]"
+
+    write_servers_to_file(servers_copy, False)
+    if os.path.exists("cache/dirty.info"):
+        os.remove("cache/dirty.info")
 
 
 def read_servers_from_file() -> list[Server]:
