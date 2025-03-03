@@ -65,19 +65,4 @@ if __name__ == "__main__":
     else:
         main_menu(args, server_list, options)
 
-    # user_choice = None
-    # user_quit = False
-    # while not user_quit:
-    #
-    # max_distance = filters["distance"]["max"]
-    # server_list, new_max_distance = get_uncle(
-    #     args.ping_servers, max_distance is None)
-    # filters["distance"]["max"] = new_max_distance
-    #
-    # Pretty print the response
-    # if server_list is not None:
-    #     for server in server_list:
-    #         print(server)
-    #         print()
-
     write_options(options)
