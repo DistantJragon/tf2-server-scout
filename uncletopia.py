@@ -1,7 +1,12 @@
 import argparse
 
 from options import read_options, write_options
-from server_uncle import read_servers_from_file, update_cache_uncle
+from server_uncle import (
+    check_cache_dirty,
+    clean_write_servers_to_file,
+    read_servers_from_file,
+    update_cache_uncle,
+)
 from ui_menus import main_menu
 from ui_uncle import auto_join, quick_print
 
@@ -66,3 +71,5 @@ if __name__ == "__main__":
         main_menu(args, server_list, options)
 
     write_options(options)
+    if options["misc"]["cache_uncletopia_state"] and check_cache_dirty():
+        clean_write_servers_to_file(server_list)
