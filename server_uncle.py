@@ -159,7 +159,9 @@ def update_server_with_steam_info(server: Server):
         server["map"] = info.map_name
         server["ping"] = info.ping * 1000
     except Exception as e:
-        print(f"Error updating server with steam info: {e}")
+        print(
+            f"Error updating server {server['ip']} with steam info in update_server_with_steam_info: {e}"
+        )
 
 
 def update_servers_with_steam_info(servers: list[Server]):
@@ -167,6 +169,7 @@ def update_servers_with_steam_info(servers: list[Server]):
     Update the server information with the steam information.
     Updates player count, map, and ping.
     """
+
     with concurrent.futures.ThreadPoolExecutor() as executor:
         futures = {
             executor.submit(update_server_with_steam_info, server): server
@@ -176,7 +179,10 @@ def update_servers_with_steam_info(servers: list[Server]):
             try:
                 future.result()
             except Exception as e:
-                print(f"Error updating server with steam info: {e}")
+                server_ip = futures[future]["ip"]
+                print(
+                    f"Error updating server {server_ip} with steam info in update_servers_with_steam_info: {e}"
+                )
 
 
 def join_server(server: Server | str):
