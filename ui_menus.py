@@ -66,13 +66,11 @@ def sub_filter_menu(args: Any, options: Options, field: str):
                 if field == "server_id":
                     try:
                         value = int(value)
-                        filter["values"] = [
-                            x for x in filter["values"] if x != value]
+                        filter["values"] = [x for x in filter["values"] if x != value]
                     except ValueError:
                         print("Invalid server id")
                 else:
-                    filter["values"] = [
-                        x for x in filter["values"] if x != value]
+                    filter["values"] = [x for x in filter["values"] if x != value]
             elif choice == "4":
                 filter["exclude"] = not filter["exclude"]
             elif choice == "5":
@@ -169,10 +167,8 @@ def sort_menu(args: Any, options: Options):
         for i, field in enumerate(sort_choices):
             print(f"  {i + 1}. {field}")
         reversed_str = "(reversed)" if options["server_sort"]["reverse"] else ""
-        print(
-            f"Current sort: {options['server_sort']['sort_by']} {reversed_str}")
-        choice = input(
-            "Enter choice (b for back, r to toggle reverse sorting): ")
+        print(f"Current sort: {options['server_sort']['sort_by']} {reversed_str}")
+        choice = input("Enter choice (b for back, r to toggle reverse sorting): ")
         if choice.lower() == "b" or choice.lower() == "back":
             user_back = True
             return
@@ -187,6 +183,34 @@ def sort_menu(args: Any, options: Options):
 
 
 def edit_misc_menu(args: Any, options: Options):
+    misc_options = options["misc"]
+    misc_choices = [x for x in misc_options.keys()]
+    user_back = False
+    while not user_back:
+        print("Misc options:")
+        for i, field in enumerate(misc_choices):
+            print(f"  {i + 1}. {field}: {misc_options[field]}")
+        choice = input("Enter choice (b for back): ")
+        if choice.lower() == "b" or choice.lower() == "back":
+            user_back = True
+            return
+        elif (
+            choice.isdigit() and int(choice) - 1 < len(misc_choices) and int(choice) > 0
+        ):
+            field = misc_choices[int(choice) - 1]
+            if isinstance(misc_options[field], bool):
+                misc_options[field] = not misc_options[field]
+            else:
+                new_value = input(f"Enter new value for {field}: ")
+                try:
+                    if "." in new_value:
+                        misc_options[field] = float(new_value)
+                    else:
+                        misc_options[field] = int(new_value)
+                except ValueError:
+                    print("Invalid value")
+        else:
+            print("Invalid choice")
     pass
 
 
