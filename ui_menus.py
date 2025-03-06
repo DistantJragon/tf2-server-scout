@@ -1,15 +1,13 @@
 from typing import Any
 
-from models import DisplayOptions, Options, Server, ServerFilter, SortServerOptions
+from models import Options, Server
 from server_uncle import get_uncle, update_cache_uncle, update_servers_with_steam_info
 from ui_uncle import auto_join, justify_strings, quick_print
 
 
-def sub_filter_to_string(
-    options: Options, field: str, print_field: bool = True, print_values: bool = True
-) -> str:
+def sub_filter_to_string(options: Options, field: str, add_field: bool = True) -> str:
     filter = options["filters"][field]
-    field_str = f"{field} filter - " if print_field else ""
+    field_str = f"{field} filter - " if add_field else ""
     if "values" in filter:
         exclude_str = "Exclude: " if filter["exclude"] else "Only include:"
         values_str = " ; ".join([str(x) for x in filter["values"]])
@@ -58,7 +56,7 @@ def sub_filter_menu(args: Any, options: Options, field: str):
                     and int(index) < len(filter["values"]) + 1
                     and int(index) >= 1
                 ):
-                    filter["values"].pop(int(index - 1))
+                    filter["values"].pop(int(index) - 1)
                 else:
                     print("Invalid index")
             elif choice == "3":
@@ -66,11 +64,13 @@ def sub_filter_menu(args: Any, options: Options, field: str):
                 if field == "server_id":
                     try:
                         value = int(value)
-                        filter["values"] = [x for x in filter["values"] if x != value]
+                        filter["values"] = [
+                            x for x in filter["values"] if x != value]
                     except ValueError:
                         print("Invalid server id")
                 else:
-                    filter["values"] = [x for x in filter["values"] if x != value]
+                    filter["values"] = [
+                        x for x in filter["values"] if x != value]
             elif choice == "4":
                 filter["exclude"] = not filter["exclude"]
             elif choice == "5":
@@ -119,7 +119,7 @@ def filter_menu(args: Any, options: Options):
         for i, field in enumerate(filter_choices):
             print(
                 f"  {justify_strings(filter_max_length + 5, lf=f'{i + 1}. {field}:')}"
-                + f"{sub_filter_to_string(options, field, print_field=False)}"
+                + f"{sub_filter_to_string(options, field, add_field=False)}"
             )
         choice = input("Enter choice (b for back): ")
         if choice.lower() == "b" or choice.lower() == "back":
@@ -167,8 +167,10 @@ def sort_menu(args: Any, options: Options):
         for i, field in enumerate(sort_choices):
             print(f"  {i + 1}. {field}")
         reversed_str = "(reversed)" if options["server_sort"]["reverse"] else ""
-        print(f"Current sort: {options['server_sort']['sort_by']} {reversed_str}")
-        choice = input("Enter choice (b for back, r to toggle reverse sorting): ")
+        print(
+            f"Current sort: {options['server_sort']['sort_by']} {reversed_str}")
+        choice = input(
+            "Enter choice (b for back, r to toggle reverse sorting): ")
         if choice.lower() == "b" or choice.lower() == "back":
             user_back = True
             return
@@ -189,7 +191,12 @@ def edit_misc_menu(args: Any, options: Options):
     while not user_back:
         print("Misc options:")
         for i, field in enumerate(misc_choices):
-            print(f"  {i + 1}. {field}: {misc_options[field]}")
+            value_str: str = misc_options[field]
+            if field == "forced_width":
+                value_str += " characters (0 for auto)"
+            if field == "refresh_interval":
+                value_str += " seconds"
+            print(f"  {i + 1}. {field}: {value_str}")
         choice = input("Enter choice (b for back): ")
         if choice.lower() == "b" or choice.lower() == "back":
             user_back = True
@@ -211,7 +218,6 @@ def edit_misc_menu(args: Any, options: Options):
                     print("Invalid value")
         else:
             print("Invalid choice")
-    pass
 
 
 def edit_option_menu(args: Any, options: Options):
@@ -222,6 +228,9 @@ def edit_option_menu(args: Any, options: Options):
         print("  2. Sort")
         print("  3. Display")
         print("  4. Misc")
+        print("  5. Reload options from file")
+        print("  6. Save options to file")
+        print("  7. Reset options to default")
         choice = input("Enter choice (b for back): ")
         if choice.lower() == "b" or choice.lower() == "back":
             user_back = True
@@ -234,6 +243,12 @@ def edit_option_menu(args: Any, options: Options):
             display_menu(args, options)
         elif choice == "4":
             edit_misc_menu(args, options)
+        elif choice == "5":
+            pass
+        elif choice == "6":
+            pass
+        elif choice == "7":
+            pass
         else:
             print("Invalid choice")
 
