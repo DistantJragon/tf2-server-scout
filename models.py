@@ -1,28 +1,4 @@
-from typing import Any, Literal, TypedDict
-
-ServerFieldLiteral = Literal[
-    "server_id",
-    "host",
-    "port",
-    "ip",
-    "name",
-    "name_short",
-    "region",
-    "cc",
-    "players",
-    "max_players",
-    "bots",
-    "map",
-    "game_types",
-    "latitude",
-    "longitude",
-    "distance",
-    "humans",
-    "ping",
-    "slots",
-    "ip_port",
-    "join_url",
-]
+from typing import TypedDict
 
 
 class Server(TypedDict):
@@ -50,7 +26,7 @@ class Server(TypedDict):
 
 
 class SortServerOptions(TypedDict):
-    sort_by: ServerFieldLiteral
+    sort_by: str
     reverse: bool
 
 
@@ -102,8 +78,25 @@ class DisplayOptions(TypedDict):
     join_url: bool
 
 
+class MiscOptions(TypedDict):
+    always_ping: bool
+    auto_distance_calculation: bool
+    border_server_name: bool
+    cache_uncletopia_state: bool
+    disable_colors: bool
+    compact_output: bool
+    forced_width: int
+    play_sound_on_join: bool
+    query_steam: bool
+    refresh_interval: float
+    steam_username: str
+    update_last_played_on_join_new_server: bool
+    use_emojis: bool
+    use_icons: bool
+
+
 class Options(TypedDict):
     filters: ServerFilter
     server_sort: SortServerOptions
     display: DisplayOptions
-    misc: dict[str, Any]
+    misc: MiscOptions

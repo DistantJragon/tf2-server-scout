@@ -42,6 +42,8 @@ DEFAULT_OPTIONS: Options = {
         "play_sound_on_join": True,
         "query_steam": True,
         "refresh_interval": 5,
+        "steam_username": "",
+        "update_last_played_on_join_new_server": False,
         "use_emojis": False,
         "use_icons": False,
     },
