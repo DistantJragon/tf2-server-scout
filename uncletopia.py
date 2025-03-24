@@ -31,7 +31,6 @@ _ = parser.add_argument(
     action="store_true",
 )
 
-
 _ = parser.add_argument(
     "-P",
     "--ping-servers",
@@ -44,6 +43,14 @@ _ = parser.add_argument(
     help="Refresh interval for the server list",
     type=int,
 )
+
+_ = parser.add_argument(
+    "-J",
+    "--disable-join",
+    help="Prevents the program from joining servers",
+    action="store_true",
+)
+
 if __name__ == "__main__":
     args = parser.parse_args()
     options = read_options()
@@ -71,5 +78,7 @@ if __name__ == "__main__":
         main_menu(args, server_list, options)
 
     write_options(options)
-    if options["misc"]["cache_uncletopia_state"] and check_cache_dirty():
+    # Used to only write to file if the cache was dirty
+    # Now, always write to file to keep each server's last_played time up to date
+    if options["misc"]["cache_uncletopia_state"]:
         clean_write_servers_to_file(server_list)

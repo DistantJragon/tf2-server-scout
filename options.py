@@ -30,6 +30,8 @@ DEFAULT_OPTIONS: Options = {
         "slots": False,
         "ip_port": False,
         "join_url": False,
+        "last_played": True,
+        "since_played": True,
     },
     "misc": {
         "always_ping": False,

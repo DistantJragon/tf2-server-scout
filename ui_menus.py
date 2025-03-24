@@ -1,8 +1,16 @@
 from typing import Any
 
+from filters import apply_pre_filters
 from models import Options, Server
-from server_uncle import get_uncle, update_cache_uncle, update_servers_with_steam_info
-from ui_uncle import auto_join, justify_strings, quick_print
+from server_uncle import (
+    format_last_played,
+    format_since_played,
+    get_uncle,
+    update_cache_uncle,
+    update_last_played,
+    update_servers_with_steam_info,
+)
+from ui_uncle import auto_join, justify_strings, pretty_print_server, quick_print
 
 
 def sub_filter_to_string(options: Options, field: str, add_field: bool = True) -> str:
@@ -118,7 +126,7 @@ def filter_menu(args: Any, options: Options):
         print("Filters:")
         for i, field in enumerate(filter_choices):
             print(
-                f"  {justify_strings(filter_max_length + 5, lf=f'{i + 1}. {field}:')}"
+                f"  {justify_strings(filter_max_length + 6, lf=f'{i + 1}. {field}:')}"
                 + f"{sub_filter_to_string(options, field, add_field=False)}"
             )
         choice = input("Enter choice (b for back): ")
@@ -191,7 +199,7 @@ def edit_misc_menu(args: Any, options: Options):
     while not user_back:
         print("Misc options:")
         for i, field in enumerate(misc_choices):
-            value_str: str = misc_options[field]
+            value_str: str = str(misc_options[field])
             if field == "forced_width":
                 value_str += " characters (0 for auto)"
             if field == "refresh_interval":
@@ -207,6 +215,9 @@ def edit_misc_menu(args: Any, options: Options):
             field = misc_choices[int(choice) - 1]
             if isinstance(misc_options[field], bool):
                 misc_options[field] = not misc_options[field]
+            elif isinstance(misc_options[field], str):
+                new_value = input(f"Enter new value for {field}: ")
+                misc_options[field] = new_value
             else:
                 new_value = input(f"Enter new value for {field}: ")
                 try:
@@ -255,26 +266,62 @@ def edit_option_menu(args: Any, options: Options):
 
 def main_menu(args: Any, servers: list[Server], options: Options):
     user_exit = False
+    last_server_joined: Server | None = None
+    last_server_joined_played: float | None = None
+    pre_filtered_servers = apply_pre_filters(servers, options["filters"])
     while not user_exit:
         print("Main menu:")
         print("  1. Auto join")
         print("  2. Quick print")
         print("  3. Edit options")
-        print("  4. Update using Steam info")
-        print("  5. Update using Uncletopia API")
+        print("  4. Undo Join (reset last played)")
+        print("  5. Update using Steam info")
+        print("  6. Update using Uncletopia API")
         choice = input("Enter choice (q to quit): ")
         if len(choice) == 0 or len(choice) > 1:
             print("Invalid choice")
             continue
         if choice == "1":
-            auto_join(args, servers, options)
+            # Auto join
+            if (
+                last_server_joined is not None
+                and options["misc"]["update_last_played_on_join_new_server"]
+            ):
+                update_last_played(last_server_joined)
+                print("Last played server: ")
+                pretty_print_server(last_server_joined, options)
+                print()
+            last_server_joined = auto_join(args, pre_filtered_servers, options)
+            if last_server_joined is not None:
+                last_server_joined_played = last_server_joined["last_played"]
+                update_last_played(last_server_joined)
         elif choice == "2":
-            quick_print(args, servers, options)
+            # Quick print
+            quick_print(args, pre_filtered_servers, options)
         elif choice == "3":
+            # Edit options
             edit_option_menu(args, options)
+            pre_filtered_servers = apply_pre_filters(
+                servers, options["filters"])
         elif choice == "4":
-            update_servers_with_steam_info(servers)
+            # Undo join
+            if last_server_joined is None:
+                print("No server joined yet")
+            elif last_server_joined_played is None:
+                print("You have already undone the last join")
+            else:
+                last_server_joined["last_played"] = last_server_joined_played
+                last_server_joined_played = None
+                print(
+                    f'The server that was "joined" has been reset to {format_last_played(last_server_joined)}'
+                )
         elif choice == "5":
+            # Update using Steam info
+            update_servers_with_steam_info(
+                pre_filtered_servers, options["misc"]["steam_username"]
+            )
+        elif choice == "6":
+            # Update using Uncletopia API
             new_max_distance = None
             if options["misc"]["cache_uncletopia_state"]:
                 servers, new_max_distance = update_cache_uncle(
@@ -288,6 +335,8 @@ def main_menu(args: Any, servers: list[Server], options: Options):
                 options["filters"]["distance"]["max"] = new_max_distance
         elif choice == "F":
             filter_menu(args, options)
+            pre_filtered_servers = apply_pre_filters(
+                servers, options["filters"])
         elif choice == "S":
             sort_menu(args, options)
         elif choice == "D":

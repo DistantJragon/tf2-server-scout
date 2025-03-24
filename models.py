@@ -23,6 +23,8 @@ class Server(TypedDict):
     slots: int
     ip_port: str
     join_url: str
+    last_played: float
+    since_played: float
 
 
 class SortServerOptions(TypedDict):
@@ -52,6 +54,7 @@ class ServerFilter(TypedDict):
     ping: RangeFilter
     slots: RangeFilter
     ip_port: ListFilter
+    since_played: RangeFilter
 
 
 class DisplayOptions(TypedDict):
@@ -76,6 +79,8 @@ class DisplayOptions(TypedDict):
     slots: bool
     ip_port: bool
     join_url: bool
+    last_played: bool
+    since_played: bool
 
 
 class MiscOptions(TypedDict):

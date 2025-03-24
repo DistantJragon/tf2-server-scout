@@ -15,6 +15,7 @@ DEFAULT_FILTERS: ServerFilter = {
     "ping": {"min": None, "max": 150.0},
     "slots": {"min": None, "max": None},
     "ip_port": {"values": [], "exclude": True},
+    "since_played": {"min": None, "max": None},
 }
 
 
@@ -38,7 +39,7 @@ def read_filters() -> ServerFilter:
     except FileNotFoundError:
         print("No filters file found, creating a new one.")
         write_filters(DEFAULT_FILTERS)
-        return DEFAULT_FILTERS.copy()
+        return get_default_filters()
 
 
 def apply_filters(servers: list[Server], server_filter: ServerFilter) -> list[Server]:
@@ -46,8 +47,6 @@ def apply_filters(servers: list[Server], server_filter: ServerFilter) -> list[Se
     for server in servers:
         failed = False
         for key, item in server.items():
-            if item is None:
-                continue
             if key not in server_filter:
                 continue
             if "values" in server_filter[key]:
@@ -61,14 +60,34 @@ def apply_filters(servers: list[Server], server_filter: ServerFilter) -> list[Se
                     break
             elif "min" in server_filter[key]:
                 range_filter: RangeFilter = server_filter[key]
+                if key == "since_played" and item == -1:
+                    # Sever has never been played, skip this filter
+                    continue
                 if range_filter["min"] is not None and item < range_filter["min"]:
                     failed = True
                     break
                 if range_filter["max"] is not None and item > range_filter["max"]:
                     failed = True
                     break
+            else:
+                raise ValueError(f"Invalid filter key: {key}")
 
         if not failed:
             filtered_servers.append(server)
 
     return filtered_servers
+
+
+def apply_pre_filters(
+    servers: list[Server], server_filter: ServerFilter
+) -> list[Server]:
+    """
+    Make new filters such that the filter criteria is only ones that don't vary often
+    (e.g cc, region, map, ip_port)
+    """
+    pre_filters = deepcopy(server_filter)
+    pre_filters["players"] = {"min": None, "max": None}
+    pre_filters["map"] = {"values": [], "exclude": True}
+    pre_filters["slots"] = {"min": None, "max": None}
+    pre_filters["since_played"] = {"min": None, "max": None}
+    return apply_filters(servers, pre_filters)

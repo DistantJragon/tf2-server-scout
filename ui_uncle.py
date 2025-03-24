@@ -6,10 +6,14 @@ from filters import apply_filters
 from models import Options, Server
 from server_sort import sort_servers
 from server_uncle import (
-    compile_join_url,
+    format_last_played,
+    format_since_played,
     get_country_emoji,
     get_uncle,
     join_server,
+    refresh_since_played,
+    refresh_since_played_all,
+    update_last_played,
     update_servers_with_steam_info,
 )
 
@@ -54,7 +58,7 @@ def pretty_print_server(server: Server, options: Options, print_width: int = -1)
     if print_width < 0:
         print_width = misc["forced_width"]
         terminal_width = shutil.get_terminal_size(fallback=(-1, -1)).columns
-        if print_width < terminal_width:
+        if print_width > terminal_width:
             print_width = int(terminal_width * 0.4)
         if print_width < MIN_WIDTH and not compact_output:
             print_width = MIN_WIDTH
@@ -108,7 +112,8 @@ def pretty_print_server(server: Server, options: Options, print_width: int = -1)
         right += f"/{server['max_players']}"
     if not compact_output and (display["players"] or display["max_players"]):
         right += " players"
-    server_str += justify_strings(print_width, lf=left, rt=right) + "\n"
+    if left or right:
+        server_str += justify_strings(print_width, lf=left, rt=right) + "\n"
     left = ""
     right = ""
     if display["map"]:
@@ -117,7 +122,22 @@ def pretty_print_server(server: Server, options: Options, print_width: int = -1)
         left += server["map"]
     if display["bots"]:
         right += f"{server['bots']} bots"
-    server_str += justify_strings(print_width, lf=left, rt=right) + "\n"
+    if left or right:
+        server_str += justify_strings(print_width, lf=left, rt=right) + "\n"
+    # Last / Since Played
+    left = ""
+    right = ""
+    if display["last_played"]:
+        if not compact_output:
+            left += "Last played: "
+        left += format_last_played(server)
+    if display["since_played"]:
+        refresh_since_played(server)
+        right += format_since_played(server)
+        if not compact_output:
+            right += " ago"
+    if left or right:
+        server_str += justify_strings(print_width, lf=left, rt=right) + "\n"
     # Unstructured Server Information
     for key, item in display.items():
         if not item:
@@ -132,13 +152,11 @@ def pretty_print_server(server: Server, options: Options, print_width: int = -1)
             "bots",
             "map",
             "ping",
+            "last_played",
+            "since_played",
         ]:
             continue
-        if key == "ip_port":
-            server_str += f"{server['ip']}:{server['port']}\n"
-        elif key == "join_url":
-            server_str += f"{compile_join_url(server)}\n"
-        elif key not in Server.__annotations__:
+        if key not in server:
             raise ValueError(f"Invalid display key: {key}")
         else:
             if not compact_output:
@@ -148,7 +166,7 @@ def pretty_print_server(server: Server, options: Options, print_width: int = -1)
     print(server_str)
 
 
-def auto_join(args: Any, servers: list[Server], options: Options):
+def auto_join(args: Any, servers: list[Server], options: Options) -> Server | None:
     """
     Continuously search for a server based on saved filters and join it when found.
     """
@@ -167,7 +185,7 @@ def auto_join(args: Any, servers: list[Server], options: Options):
     try:
         while not found_server:
             if misc["query_steam"]:
-                update_servers_with_steam_info(servers)
+                update_servers_with_steam_info(servers, misc["steam_username"])
             else:
                 servers, new_max_distance = get_uncle(
                     ping_servers, calculate_max_distance
@@ -176,6 +194,7 @@ def auto_join(args: Any, servers: list[Server], options: Options):
                 if new_max_distance is not None:
                     filters["distance"]["max"] = new_max_distance
 
+            refresh_since_played_all(servers)
             filtered_servers = apply_filters(servers, filters)
             if not filtered_servers:
                 print("No servers found, waiting for refresh")
@@ -183,13 +202,16 @@ def auto_join(args: Any, servers: list[Server], options: Options):
                 continue
             sort_servers(filtered_servers, server_sort)
             found_server = True
-            server_to_join = filtered_servers[0]
-            join_server(server_to_join)
+            server_to_join: Server = filtered_servers[0]
+            if not args.disable_join:
+                join_server(server_to_join)
             pretty_print_server(server_to_join, options)
             if misc["play_sound_on_join"]:
                 play_sound()
+            return server_to_join
     except KeyboardInterrupt:
         print("User interrupted search")
+        return None
 
 
 def quick_print(

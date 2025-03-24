@@ -3,7 +3,7 @@ from copy import deepcopy
 
 from models import Server, SortServerOptions
 
-DEFAULT_SORT = SortServerOptions(sort_by="players", reverse=True)
+DEFAULT_SORT: SortServerOptions = {"sort_by": "players", "reverse": True}
 
 
 def get_default_sort() -> SortServerOptions:
@@ -34,6 +34,10 @@ def sort_servers(servers: list[Server], sort_object: SortServerOptions):
     Sort the servers list passed in based on the sort object.
     Modifies the list in place.
     """
+    if not servers:
+        return
+    if sort_object["sort_by"] not in servers[0]:
+        raise ValueError("Invalid sort key")
     if sort_object["sort_by"] == "game_types":
         raise ValueError("Cannot sort by game types")
     servers.sort(

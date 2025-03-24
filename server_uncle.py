@@ -3,6 +3,7 @@ import json
 import os
 import re
 import subprocess
+import time
 import webbrowser
 from copy import deepcopy
 from platform import system
@@ -60,10 +61,12 @@ def clean_write_servers_to_file(servers: list[Server]):
         server["bots"] = -1
         server["ping"] = -1.0
         server["slots"] = -1
+        server["humans"] = -1
         server["map"] = "[Outdated]"
+        server["since_played"] = -1
 
     write_servers_to_file(servers_copy, False)
-    if os.path.exists("cache/dirty.info"):
+    if check_cache_dirty():
         os.remove("cache/dirty.info")
 
 
@@ -162,6 +165,8 @@ def get_uncle(
         server["slots"] = server["max_players"] - server["players"]
         server["ip_port"] = f"{server['ip']}:{server['port']}"
         server["join_url"] = compile_join_url(server)
+        server["last_played"] = -1
+        server["since_played"] = -1
 
     return servers, max_distance_filter
 
@@ -177,26 +182,35 @@ def update_cache_uncle(
     return servers, new_max_distance
 
 
-def update_server_with_steam_info(server: Server):
+def update_server_with_steam_info(server: Server, username: str = ""):
     """
     Update the server information with the steam information.
     Updates player count, map, and ping.
     """
     try:
-        info = a2s.info((server["ip"], server["port"]))
+        address = (server["ip"], server["port"])
+        info = a2s.info(address)
         server["players"] = info.player_count
         server["max_players"] = info.max_players
         server["slots"] = info.max_players - info.player_count
         server["bots"] = info.bot_count
         server["map"] = info.map_name
         server["ping"] = info.ping * 1000
+        if username:
+            players = a2s.players(address)
+            for player in players:
+                if player.name == username:
+                    print(f"Found {username} in {server['name']}")
+                    server["last_played"] = time.time()
+                    server["since_played"] = 0
+                    break
     except Exception as e:
         print(
             f"Error updating server {server['ip']} with steam info in update_server_with_steam_info: {e}"
         )
 
 
-def update_servers_with_steam_info(servers: list[Server]):
+def update_servers_with_steam_info(servers: list[Server], username: str = ""):
     """
     Update the server information with the steam information.
     Updates player count, map, and ping.
@@ -204,7 +218,7 @@ def update_servers_with_steam_info(servers: list[Server]):
 
     with concurrent.futures.ThreadPoolExecutor() as executor:
         futures = {
-            executor.submit(update_server_with_steam_info, server): server
+            executor.submit(update_server_with_steam_info, server, username): server
             for server in servers
         }
         for future in concurrent.futures.as_completed(futures):
@@ -217,11 +231,51 @@ def update_servers_with_steam_info(servers: list[Server]):
                 )
 
 
+def update_last_played(server: Server):
+    server["last_played"] = time.time()
+    server["since_played"] = 0
+
+
+def format_last_played(server: Server) -> str:
+    if server["last_played"] == -1:
+        return "Never"
+    return time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(server["last_played"]))
+
+
+def format_since_played(server: Server) -> str:
+    if server["since_played"] == -1:
+        return "∞"
+    days = int(server["since_played"] // (24 * 60 * 60))
+    sec_remaining = server["since_played"] % (24 * 60 * 60)
+    since_played_str = ""
+    if days > 0:
+        since_played_str += f"{days}d, "
+    since_played_str += time.strftime("%Hh, %Mm, %Ss",
+                                      time.gmtime(sec_remaining))
+    return since_played_str
+
+
 def join_server(server: Server | str):
     if isinstance(server, str):
         _ = webbrowser.open(server)
     else:
         _ = webbrowser.open(compile_join_url(server))
+        # update_last_played(server)
+        # Updating last played on join is not done in this function,
+        # because the server print happens after this function is called,
+        # because an attempt to join a server should be made without any delay.
+        # If last_played is updated here, the server print will show the last played time as the current time
+        # (not very useful).
+
+
+def refresh_since_played(server: Server):
+    if server["last_played"] != -1:
+        server["since_played"] = time.time() - server["last_played"]
+
+
+def refresh_since_played_all(servers: list[Server]):
+    for server in servers:
+        refresh_since_played(server)
 
 
 def print_server_for_user(server: Server):
