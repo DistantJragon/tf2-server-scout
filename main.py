@@ -1,14 +1,13 @@
 import argparse
 
 from options import read_options, write_options
-from server_uncle import (
-    check_cache_dirty,
+from server_main import (
     clean_write_servers_to_file,
     read_servers_from_file,
     update_cache_uncle,
 )
+from ui_main import auto_join, quick_print
 from ui_menus import main_menu
-from ui_uncle import auto_join, quick_print
 
 # Parse arguments
 parser = argparse.ArgumentParser(

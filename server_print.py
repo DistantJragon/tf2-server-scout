@@ -1,31 +1,13 @@
 import shutil
-import time
-from typing import Any
 
-from filters import apply_filters
 from models import Options, Server
-from server_sort import sort_servers
-from server_uncle import (
+from object_grid.grid_layout import GridLayout
+from server_main import (
     format_last_played,
     format_since_played,
     get_country_emoji,
-    get_uncle,
-    join_server,
     refresh_since_played,
-    refresh_since_played_all,
-    update_last_played,
-    update_servers_with_steam_info,
 )
-
-
-def play_sound():
-    import platform
-
-    if platform.system() == "Windows":
-        import winsound
-
-        winsound.Beep(440, 500)
-        winsound.MessageBeep(winsound.MB_ICONHAND)
 
 
 def justify_strings(wd: int, lf: str = "", md: str = "", rt: str = "", em: str = " "):
@@ -44,6 +26,108 @@ def justify_strings(wd: int, lf: str = "", md: str = "", rt: str = "", em: str =
         lf += em * (spaces // 2)
         rt = em * (spaces // 2 + 1) + rt
     return lf + md + rt
+
+
+def print_server_grid(servers: list[Server], options: Options):
+    """
+    Print the servers in a grid layout.
+    """
+    grid = GridLayout()
+    grid.fast_mode = True
+    display = options["display"]
+    misc = options["misc"]
+    compact_output: bool = misc["compact_output"]
+    use_emojis: bool = misc["use_emojis"]
+    for server in servers:
+        grid_element = grid.new_element()
+        middle = ""
+        right = ""
+        # Server Name / Name Short / Ping
+        if display["name_short"] and not display["name"]:
+            grid_element.add_line(middle=server["name_short"])
+        else:
+            grid_element.add_line(middle=server["name"])
+            if display["name_short"]:
+                middle = server["name_short"]
+        if display["ping"] and server["ping"] >= 0:
+            right = f"{int(server['ping'])}ms"
+        if middle or right:
+            grid_element.add_line(left=middle, right=right, empty=" ")
+        # Structured Server Information
+        # Region / CC and Players / Max Players
+        left = ""
+        right = ""
+        if not compact_output and (display["region"] or display["cc"]):
+            left += "Region: "
+        if display["region"]:
+            left += server["region"] + " "
+        if display["cc"]:
+            left += f"({server['cc']}) "
+        if use_emojis and (display["region"] or display["cc"]):
+            left += get_country_emoji(server["cc"])
+        if display["players"]:
+            right += str(server["players"])
+        if display["max_players"]:
+            right += f"/{server['max_players']}"
+        if not compact_output and (display["players"] or display["max_players"]):
+            right += " players"
+        if left or right:
+            grid_element.add_line(left=left, middle=" ",
+                                  right=right, empty=" ")
+        # Map / Bots
+        left = ""
+        right = ""
+        if display["map"]:
+            if not compact_output:
+                left += "Playing on "
+            left += server["map"]
+        if display["bots"]:
+            right += f"{server['bots']} bots"
+        if left or right:
+            grid_element.add_line(left=left, middle=" ",
+                                  right=right, empty=" ")
+        # Last / Since Played
+        left = ""
+        right = ""
+        if display["last_played"]:
+            if not compact_output:
+                left += "Last played: "
+            left += format_last_played(server)
+        if display["since_played"]:
+            refresh_since_played(server)
+            right += format_since_played(server)
+            if not compact_output:
+                right += " ago"
+        if left or right:
+            grid_element.add_line(left=left, middle=" ",
+                                  right=right, empty=" ")
+        # Unstructured Server Information
+        for key, item in display.items():
+            if not item:
+                continue
+            if key in [
+                "name",
+                "name_short",
+                "region",
+                "cc",
+                "players",
+                "max_players",
+                "bots",
+                "map",
+                "ping",
+                "last_played",
+                "since_played",
+            ]:
+                continue
+            if key not in server:
+                raise ValueError(f"Invalid display key: {key}")
+            else:
+                if not compact_output:
+                    grid_element.add_line(left=f"{key}: {server[key]}")
+                else:
+                    grid_element.add_line(left=str(server[key]))
+
+    print(grid.compile_grid())
 
 
 def pretty_print_server(server: Server, options: Options, print_width: int = -1):
@@ -164,84 +248,3 @@ def pretty_print_server(server: Server, options: Options, print_width: int = -1)
             server_str += f"{server[key]}\n"
 
     print(server_str)
-
-
-def auto_join(args: Any, servers: list[Server], options: Options) -> Server | None:
-    """
-    Continuously search for a server based on saved filters and join it when found.
-    """
-    filters = options["filters"]
-    server_sort = options["server_sort"]
-    found_server = False
-    ping_servers: bool = args.ping_servers or options["misc"]["always_ping"]
-    calculate_max_distance: bool = (
-        options["misc"]["auto_distance_calculation"]
-        and filters["distance"]["max"] is None
-    )
-    misc = options["misc"]
-    refresh_interval: float = misc["refresh_interval"]
-    if args.refresh_interval is not None:
-        refresh_interval = float(args.refresh_interval)
-    try:
-        while not found_server:
-            if misc["query_steam"]:
-                update_servers_with_steam_info(servers, misc["steam_username"])
-            else:
-                servers, new_max_distance = get_uncle(
-                    ping_servers, calculate_max_distance
-                )
-
-                if new_max_distance is not None:
-                    filters["distance"]["max"] = new_max_distance
-
-            refresh_since_played_all(servers)
-            filtered_servers = apply_filters(servers, filters)
-            if not filtered_servers:
-                print("No servers found, waiting for refresh")
-                time.sleep(refresh_interval)
-                continue
-            sort_servers(filtered_servers, server_sort)
-            found_server = True
-            server_to_join: Server = filtered_servers[0]
-            if not args.disable_join:
-                join_server(server_to_join)
-            pretty_print_server(server_to_join, options)
-            if misc["play_sound_on_join"]:
-                play_sound()
-            return server_to_join
-    except KeyboardInterrupt:
-        print("User interrupted search")
-        return None
-
-
-def quick_print(
-    args: Any,
-    servers: list[Server],
-    options: Options,
-):
-    """
-    Print all servers that fit the filters and exit.
-    """
-    filters = options["filters"]
-    server_sort = options["server_sort"]
-    misc = options["misc"]
-    if misc["query_steam"]:
-        update_servers_with_steam_info(servers)
-    else:
-        ping_servers: bool = args.ping_servers or options["misc"]["always_ping"]
-        calculate_max_distance = (
-            options["misc"]["auto_distance_calculation"]
-            and filters["distance"]["max"] is None
-        )
-        servers, new_max_distance = get_uncle(
-            ping_servers, calculate_max_distance)
-        if new_max_distance is not None:
-            filters["distance"]["max"] = new_max_distance
-    server_list = apply_filters(servers, filters)
-    if server_list:
-        sort_servers(server_list, server_sort)
-        for server in server_list:
-            pretty_print_server(server, options)
-
-    else:
-        print("No servers found")

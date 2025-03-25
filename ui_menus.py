@@ -2,15 +2,15 @@ from typing import Any
 
 from filters import apply_pre_filters
 from models import Options, Server
-from server_uncle import (
+from server_main import (
     format_last_played,
-    format_since_played,
     get_uncle,
     update_cache_uncle,
     update_last_played,
     update_servers_with_steam_info,
 )
-from ui_uncle import auto_join, justify_strings, pretty_print_server, quick_print
+from server_print import justify_strings, pretty_print_server
+from ui_main import auto_join, quick_print
 
 
 def sub_filter_to_string(options: Options, field: str, add_field: bool = True) -> str:
