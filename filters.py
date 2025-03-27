@@ -42,11 +42,15 @@ def read_filters() -> ServerFilter:
         return get_default_filters()
 
 
-def apply_filters(servers: list[Server], server_filter: ServerFilter) -> list[Server]:
+def apply_filters(
+    servers: list[Server], server_filter: ServerFilter, print_stats: bool = False
+) -> list[Server]:
     filtered_servers: list[Server] = []
     for server in servers:
         failed = False
+        reason = None
         for key, item in server.items():
+            reason = key
             if key not in server_filter:
                 continue
             if "values" in server_filter[key]:
@@ -74,12 +78,14 @@ def apply_filters(servers: list[Server], server_filter: ServerFilter) -> list[Se
 
         if not failed:
             filtered_servers.append(server)
+        elif print_stats and reason is not None:
+            print(f"{server['name']} failed on {reason} filter")
 
     return filtered_servers
 
 
 def apply_pre_filters(
-    servers: list[Server], server_filter: ServerFilter
+    servers: list[Server], server_filter: ServerFilter, print_stats: bool = False
 ) -> list[Server]:
     """
     Make new filters such that the filter criteria is only ones that don't vary often
@@ -90,4 +96,4 @@ def apply_pre_filters(
     pre_filters["map"] = {"values": [], "exclude": True}
     pre_filters["slots"] = {"min": None, "max": None}
     pre_filters["since_played"] = {"min": None, "max": None}
-    return apply_filters(servers, pre_filters)
+    return apply_filters(servers, pre_filters, print_stats)
