@@ -70,6 +70,7 @@ DEFAULT_OPTIONS: Options = {
         "compact_output": False,
         "fast_grid_calculation": False,
         "play_sound_on_join": True,
+        "print_filter_stats": False,
         "query_steam": True,
         "refresh_interval": 5,
         "steam_username": "",

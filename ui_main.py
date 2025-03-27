@@ -48,7 +48,9 @@ def auto_join(args: Any, servers: list[Server], options: Options) -> Server | No
                     filters["distance"]["max"] = new_max_distance
 
             refresh_since_played_all(servers)
-            filtered_servers = apply_filters(servers, filters)
+            filtered_servers = apply_filters(
+                servers, filters, options["misc"]["print_filter_stats"]
+            )
             if not filtered_servers:
                 print("No servers found, waiting for refresh")
                 time.sleep(refresh_interval)
@@ -94,7 +96,8 @@ def quick_print(
             ping_servers, calculate_max_distance)
         if new_max_distance is not None:
             filters["distance"]["max"] = new_max_distance
-    server_list = apply_filters(servers, filters)
+    server_list = apply_filters(
+        servers, filters, options["misc"]["print_filter_stats"])
     if server_list:
         sort_servers(server_list, server_sort)
         print_server_grid(server_list, options)

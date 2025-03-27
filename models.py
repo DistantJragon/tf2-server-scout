@@ -89,6 +89,7 @@ class MiscOptions(TypedDict):
     compact_output: bool
     fast_grid_calculation: bool
     play_sound_on_join: bool
+    print_filter_stats: bool
     query_steam: bool
     refresh_interval: float
     steam_username: str

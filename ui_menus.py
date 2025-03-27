@@ -397,7 +397,9 @@ def main_menu(args: Any, servers: list[Server], options: Options):
     user_exit = False
     last_server_joined: Server | None = None
     last_server_joined_played: float | None = None
-    pre_filtered_servers = apply_pre_filters(servers, options["filters"])
+    pre_filtered_servers = apply_pre_filters(
+        servers, options["filters"], options["misc"]["print_filter_stats"]
+    )
     while not user_exit:
         print("Main menu:")
         print("  1. Auto join")
@@ -434,7 +436,8 @@ def main_menu(args: Any, servers: list[Server], options: Options):
             # Edit options
             edit_option_menu(args, options)
             pre_filtered_servers = apply_pre_filters(
-                servers, options["filters"])
+                servers, options["filters"], options["misc"]["print_filter_stats"]
+            )
         elif choice == "4":
             # Undo join
             if last_server_joined is None:
@@ -468,7 +471,8 @@ def main_menu(args: Any, servers: list[Server], options: Options):
         elif choice == "F":
             filter_menu(args, options)
             pre_filtered_servers = apply_pre_filters(
-                servers, options["filters"])
+                servers, options["filters"], options["misc"]["print_filter_stats"]
+            )
         elif choice == "S":
             sort_menu(args, options)
         elif choice == "D":
