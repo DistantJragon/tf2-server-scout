@@ -35,7 +35,6 @@ def print_server_grid(servers: list[Server], options: Options):
     grid = GridLayout()
     display = options["display"]
     misc = options["misc"]
-    compact_output: bool = misc["compact_output"]
     use_emojis: bool = misc["use_emojis"]
     fast_mode: bool = misc["fast_grid_calculation"]
     for server in servers:
@@ -43,67 +42,83 @@ def print_server_grid(servers: list[Server], options: Options):
         middle = ""
         right = ""
         # Server Name / Name Short / Ping
-        if display["name_short"] and not display["name"]:
-            grid_element.add_line(middle=server["name_short"])
+        if display["name_short"] != "0" and display["name"] == "0":
+            middle = server["name_short"]
         else:
-            grid_element.add_line(middle=server["name"])
-            if display["name_short"]:
-                middle = server["name_short"]
-        if display["ping"] and server["ping"] >= 0:
-            right = f"{int(server['ping'])}ms"
+            if display["name"] == "c":
+                to_strip = "Uncletopia | "
+                if server["name"].startswith(to_strip):
+                    name_stripped = server["name"][len(to_strip):]
+                else:
+                    name_stripped = server["name"]
+                grid_element.add_line(middle=name_stripped)
+        if display["ping"] != "0" and server["ping"] >= 0:
+            if display["ping"] == "f":
+                right = f"{int(server['ping'])}ms"
+            else:
+                right = str(int(server["ping"]))
         if middle or right:
             grid_element.add_line(left=middle, right=right, empty=" ")
         # Structured Server Information
         # Region / CC and Players / Max Players
         left = ""
         right = ""
-        if not compact_output and (display["region"] or display["cc"]):
-            left += "Region: "
-        if display["region"]:
-            left += server["region"] + " "
-        if display["cc"]:
-            left += f"({server['cc']}) "
-        if use_emojis and (display["region"] or display["cc"]):
-            left += get_country_emoji(server["cc"])
-        if display["players"]:
-            right += str(server["players"])
-        if display["max_players"]:
-            right += f"/{server['max_players']}"
-        if not compact_output and (display["players"] or display["max_players"]):
-            right += " players"
+        if display["region"] != "0" or display["cc"] != "0":
+            if display["region"] == "f" and display["cc"] == "f":
+                left += "Region: "
+            if display["region"] != "0":
+                left += f"{server['region']}"
+            if display["cc"] != "0":
+                left += f" ({server['cc']})"
+            if use_emojis:
+                left += " " + get_country_emoji(server["cc"])
+        if display["players"] != "0" or display["max_players"] != "0":
+            if display["players"] != "0":
+                right += str(server["players"])
+            if display["max_players"] != "0":
+                right += f"/{server['max_players']}"
+            if display["players"] == "f" and display["max_players"] == "f":
+                right += " players"
         if left or right:
             grid_element.add_line(left=left, middle=" ",
                                   right=right, empty=" ")
         # Map / Bots
         left = ""
         right = ""
-        if display["map"]:
-            if not compact_output:
-                left += "Playing on "
+        if display["map"] == "f":
+            left += f"Playing on {server['map']}"
+        elif display["map"] == "c":
             left += server["map"]
-        if display["bots"]:
+        if display["bots"] == "f":
             right += f"{server['bots']} bots"
+        elif display["bots"] == "c":
+            right += str(server["bots"])
         if left or right:
             grid_element.add_line(left=left, middle=" ",
                                   right=right, empty=" ")
         # Last / Since Played
         left = ""
         right = ""
-        if display["last_played"]:
-            if not compact_output:
-                left += "Last played: "
-            left += format_last_played(server)
-        if display["since_played"]:
+        if display["last_played"] != "0":
+            if server["last_played"] == -1:
+                left += "Never played"
+            else:
+                if display["last_played"] == "f":
+                    left += f"Played: {format_last_played(server)}"
+                else:
+                    left += format_last_played(server)
+        if display["since_played"] == "f":
+            refresh_since_played(server)
+            right += f"{format_since_played(server)} ago"
+        elif display["since_played"] == "c":
             refresh_since_played(server)
             right += format_since_played(server)
-            if not compact_output:
-                right += " ago"
         if left or right:
             grid_element.add_line(left=left, middle=" ",
                                   right=right, empty=" ")
         # Unstructured Server Information
         for key, item in display.items():
-            if not item:
+            if item == "0":
                 continue
             if key in [
                 "name",
@@ -122,7 +137,7 @@ def print_server_grid(servers: list[Server], options: Options):
             if key not in server:
                 raise ValueError(f"Invalid display key: {key}")
             else:
-                if not compact_output:
+                if display[key] == "f":
                     grid_element.add_line(left=f"{key}: {server[key]}")
                 else:
                     grid_element.add_line(left=str(server[key]))
@@ -137,30 +152,39 @@ def pretty_print_server(server: Server, options: Options, print_width: int = -1)
     """
     display = options["display"]
     misc = options["misc"]
-    compact_output: bool = misc["compact_output"]
-    MIN_WIDTH = 60
     if print_width < 0:
         print_width = misc["forced_width"]
-        terminal_width = shutil.get_terminal_size(fallback=(-1, -1)).columns
-        if print_width > terminal_width:
+        if print_width == 0:
+            terminal_width = shutil.get_terminal_size(
+                fallback=(-1, -1)).columns
             print_width = int(terminal_width * 0.4)
-        if print_width < MIN_WIDTH and not compact_output:
-            print_width = MIN_WIDTH
     server_str = ""
     # Server Name / Name Short / Ping
+    middle = ""
+    right = ""
     if misc["border_server_name"]:
         server_str += "-" * print_width + "\n"
-        if display["name_short"] and not display["name"]:
-            server_str += (
-                justify_strings(print_width, "| ",
-                                server["name_short"], " |") + "\n"
-            )
+        if display["name_short"] != "0" and display["name"] == "0":
+            middle = server["name_short"]
+        elif display["name"] == "c":
+            strip = "Uncletopia | "
+            if server["name"].startswith(strip):
+                server_str += (
+                    justify_strings(
+                        print_width, "| ", server["name"][len(strip):], " |"
+                    )
+                    + "\n"
+                )
+            else:
+                server_str += (
+                    justify_strings(print_width, "| ",
+                                    server["name"], " |") + "\n"
+                )
         else:
             server_str += (
                 justify_strings(print_width, "| ", server["name"], " |") + "\n"
             )
-        right = ""
-        if display["ping"] and server["ping"] >= 0:
+        if display["ping"] != "0" and server["ping"] >= 0:
             right = f"{int(server['ping'])}ms"
         server_str += (
             justify_strings(
@@ -168,7 +192,7 @@ def pretty_print_server(server: Server, options: Options, print_width: int = -1)
             + "\n"
         )
     else:
-        if not display["name"]:
+        if display["name"]:
             server_str += justify_strings(print_width,
                                           md=server["name_short"]) + "\n"
         else:
@@ -180,51 +204,57 @@ def pretty_print_server(server: Server, options: Options, print_width: int = -1)
                         print_width, md=server["name_short"]) + "\n"
                 )
     # Structured Server Information
+    # Region / CC and Players / Max Players
     left = ""
     right = ""
-    if not compact_output and (display["region"] or display["cc"]):
-        left += "Region: "
-    if display["region"]:
-        left += server["region"] + " "
-    if display["cc"]:
-        left += f"({server['cc']}) "
-    if misc["use_emojis"] and (display["region"] or display["cc"]):
-        left += get_country_emoji(server["cc"])
-    if display["players"]:
-        right += str(server["players"])
-    if display["max_players"]:
+    if display["region"] != "0" or display["cc"] != "0":
+        if display["region"] == "f" and display["cc"] == "f":
+            left += "Region: "
+        if display["region"] != "0":
+            left += f"{server['region']} "
+        if display["cc"] != "0":
+            left += f" ({server['cc']})"
+        if misc["use_emojis"]:
+            left += " " + get_country_emoji(server["cc"])
+    if display["players"] != "0":
+        right += f"{server['players']}"
+    if display["max_players"] != "0":
         right += f"/{server['max_players']}"
-    if not compact_output and (display["players"] or display["max_players"]):
+    if display["players"] == "f" and display["max_players"] == "f":
         right += " players"
     if left or right:
         server_str += justify_strings(print_width, lf=left, rt=right) + "\n"
+    # Map / Bots
     left = ""
     right = ""
-    if display["map"]:
-        if not compact_output:
+    if display["map"] != "0":
+        if display["map"] == "f":
             left += "Playing on "
         left += server["map"]
-    if display["bots"]:
+    if display["bots"] != "0":
         right += f"{server['bots']} bots"
     if left or right:
         server_str += justify_strings(print_width, lf=left, rt=right) + "\n"
     # Last / Since Played
     left = ""
     right = ""
-    if display["last_played"]:
-        if not compact_output:
-            left += "Last played: "
-        left += format_last_played(server)
-    if display["since_played"]:
+    if display["last_played"] != "0":
+        if server["last_played"] == -1:
+            left += "Never played"
+        else:
+            if display["last_played"] == "f":
+                left += "Played: "
+            left += format_last_played(server)
+    if display["since_played"] != "0":
         refresh_since_played(server)
         right += format_since_played(server)
-        if not compact_output:
+        if display["since_played"] == "f":
             right += " ago"
     if left or right:
         server_str += justify_strings(print_width, lf=left, rt=right) + "\n"
     # Unstructured Server Information
     for key, item in display.items():
-        if not item:
+        if item == "0":
             continue
         if key in [
             "name",
@@ -243,7 +273,7 @@ def pretty_print_server(server: Server, options: Options, print_width: int = -1)
         if key not in server:
             raise ValueError(f"Invalid display key: {key}")
         else:
-            if not compact_output:
+            if item == "f":
                 server_str += f"{key}: "
             server_str += f"{server[key]}\n"
 

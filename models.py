@@ -58,29 +58,29 @@ class ServerFilter(TypedDict):
 
 
 class DisplayOptions(TypedDict):
-    server_id: bool
-    host: bool
-    port: bool
-    ip: bool
-    name: bool
-    name_short: bool
-    region: bool
-    cc: bool
-    players: bool
-    max_players: bool
-    bots: bool
-    map: bool
-    game_types: bool
-    latitude: bool
-    longitude: bool
-    distance: bool
-    humans: bool
-    ping: bool
-    slots: bool
-    ip_port: bool
-    join_url: bool
-    last_played: bool
-    since_played: bool
+    server_id: str
+    host: str
+    port: str
+    ip: str
+    name: str
+    name_short: str
+    region: str
+    cc: str
+    players: str
+    max_players: str
+    bots: str
+    map: str
+    game_types: str
+    latitude: str
+    longitude: str
+    distance: str
+    humans: str
+    ping: str
+    slots: str
+    ip_port: str
+    join_url: str
+    last_played: str
+    since_played: str
 
 
 class MiscOptions(TypedDict):
