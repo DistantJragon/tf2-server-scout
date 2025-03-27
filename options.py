@@ -43,6 +43,7 @@ DEFAULT_OPTIONS: Options = {
         "fast_grid_calculation": False,
         "forced_width": 0,
         "play_sound_on_join": True,
+        "pre_filter_servers": True,
         "query_steam": True,
         "refresh_interval": 5,
         "steam_username": "",
