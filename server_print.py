@@ -33,11 +33,11 @@ def print_server_grid(servers: list[Server], options: Options):
     Print the servers in a grid layout.
     """
     grid = GridLayout()
-    grid.fast_mode = True
     display = options["display"]
     misc = options["misc"]
     compact_output: bool = misc["compact_output"]
     use_emojis: bool = misc["use_emojis"]
+    fast_mode: bool = misc["fast_grid_calculation"]
     for server in servers:
         grid_element = grid.new_element()
         middle = ""
@@ -127,7 +127,7 @@ def print_server_grid(servers: list[Server], options: Options):
                 else:
                     grid_element.add_line(left=str(server[key]))
 
-    print(grid.compile_grid())
+    print(grid.compile_grid(fast_mode))
 
 
 def pretty_print_server(server: Server, options: Options, print_width: int = -1):

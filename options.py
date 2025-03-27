@@ -40,6 +40,7 @@ DEFAULT_OPTIONS: Options = {
         "cache_uncletopia_state": True,
         "disable_colors": False,
         "compact_output": False,
+        "fast_grid_calculation": False,
         "forced_width": 0,
         "play_sound_on_join": True,
         "query_steam": True,

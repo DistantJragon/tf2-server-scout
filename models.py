@@ -90,6 +90,7 @@ class MiscOptions(TypedDict):
     cache_uncletopia_state: bool
     disable_colors: bool
     compact_output: bool
+    fast_grid_calculation: bool
     forced_width: int
     play_sound_on_join: bool
     query_steam: bool
