@@ -14,7 +14,7 @@ DEFAULT_OPTIONS: Options = {
         "port": "0",
         "ip": "0",
         "name": "c",
-        "name_short": "0",
+        "name_short": "f",
         "region": "f",
         "cc": "0",
         "players": "f",
