@@ -126,7 +126,7 @@ def filter_menu(args: Any, options: Options):
         print("Filters:")
         for i, field in enumerate(filter_choices):
             print(
-                f"  {justify_strings(filter_max_length + 6, lf=f'{i + 1}. {field}:')}"
+                f"  {justify_strings(filter_max_length + 6, left=f'{i + 1}. {field}:')}"
                 + f"{sub_filter_to_string(options, field, add_field=False)}"
             )
         choice = input("Enter choice (b for back): ")
@@ -146,25 +146,36 @@ def display_menu(args: Any, options: Options):
     display_options = options["display"]
     possible_options = [x for x in display_options.keys()]
     possible_options_max_length = max([len(x) for x in possible_options])
+    user_mode = "f"
+    tip = "Full"
     user_back = False
     while not user_back:
         print("Display options:")
-        for i, field in enumerate(possible_options):
+        for i, field in enumerate(possible_options, start=1):
             print(
-                f"  {justify_strings(possible_options_max_length + 6, lf=f'{i + 1}. {field}:')}"
+                f"  {justify_strings(possible_options_max_length + 6, left=f'{i + 1}. {field}:')}"
                 + f"{display_options[field]}"
             )
-        choice = input("Enter choice (b for back): ")
+        # choice = input("Full mode: Enter choice (b for back): ")
+        choice = input(
+            f"{tip} mode: Enter choice (b for back, c to change mode): ")
         if choice.lower() == "b" or choice.lower() == "back":
             user_back = True
             return
+        elif choice.lower() == "c":
+            if user_mode == "f":
+                user_mode = "c"
+                tip = "Compact"
+            else:
+                user_mode = "f"
+                tip = "Full"
         elif (
             choice.isdigit()
             and int(choice) - 1 < len(possible_options)
             and int(choice) > 0
         ):
             field = possible_options[int(choice) - 1]
-            display_options[field] = not display_options[field]
+            display_options[field] = user_mode
 
 
 def sort_menu(args: Any, options: Options):
