@@ -164,7 +164,6 @@ def get_uncle(
     for server in servers:
         server["slots"] = server["max_players"] - server["players"]
         server["ip_port"] = f"{server['ip']}:{server['port']}"
-        server["join_url"] = compile_join_url(server)
         server["last_played"] = -1
         server["since_played"] = -1
 
@@ -247,12 +246,10 @@ def format_since_played(server: Server) -> str:
         return "∞"
     days = int(server["since_played"] // (24 * 60 * 60))
     sec_remaining = server["since_played"] % (24 * 60 * 60)
-    since_played_str = ""
     if days > 0:
-        since_played_str += f"{days}d, "
-    since_played_str += time.strftime("%Hh, %Mm, %Ss",
-                                      time.gmtime(sec_remaining))
-    return since_played_str
+        return f"{days}d, {time.strftime('%Hh, %Mm', time.gmtime(sec_remaining))}"
+
+    return time.strftime("%Hh, %Mm, %Ss", time.gmtime(sec_remaining))
 
 
 def join_server(server: Server | str):
