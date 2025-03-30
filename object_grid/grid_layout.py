@@ -30,9 +30,10 @@ class GridLayout:
         for element in self.elements:
             max_width = max(max_width, element.min_width)
         # Add one to the max width to account for the padding
-        max_width += 1
+        max_width_plus_separator = max_width + 1
         # Calculate the grid width
-        min_grid_width = math.floor((line_width - 1) / max_width)
+        min_grid_width = math.floor(
+            (line_width - 1) / max_width_plus_separator)
         if self.forced_grid_width_limit > 0:
             self.grid_width = min(
                 self.forced_grid_width_limit, min_grid_width, len(
@@ -40,8 +41,8 @@ class GridLayout:
             )
         else:
             self.grid_width = min(min_grid_width, len(self.elements))
-        self.grid_width_characters = 1 + self.grid_width * max_width
-        self.column_widths = [max_width - 1] * self.grid_width
+        self.grid_width_characters = 1 + self.grid_width * max_width_plus_separator
+        self.column_widths = [max_width] * self.grid_width
 
     def calculate_dimensions(self):
         if len(self.elements) == 0:
@@ -61,7 +62,13 @@ class GridLayout:
             raise ValueError("No elements fit in the grid")
         # Calculate the grid width (and save column widths)
         elements_fit = False
-        current_grid_width = maximum_grid_width
+        if self.forced_grid_width_limit > 0:
+            current_grid_width = min(
+                maximum_grid_width, len(
+                    self.elements), self.forced_grid_width_limit
+            )
+        else:
+            current_grid_width = min(maximum_grid_width, len(self.elements))
         current_grid_width_characters = 1
         while not elements_fit and current_grid_width > 0:
             # Assume elements can fit in the grid of maximum width
@@ -70,10 +77,10 @@ class GridLayout:
             current_grid_width_characters = 1 + current_grid_width
             column = 0
             self.column_widths = [0] * current_grid_width
-            for i in range(len(self.elements)):
+            for element in self.elements:
                 current_grid_width_characters -= self.column_widths[column]
                 self.column_widths[column] = max(
-                    self.column_widths[column], self.elements[i].min_width
+                    self.column_widths[column], element.min_width
                 )
                 current_grid_width_characters += self.column_widths[column]
                 if current_grid_width_characters > line_width:

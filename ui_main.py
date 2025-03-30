@@ -69,6 +69,7 @@ def auto_join(args: Any, servers: list[Server], options: Options) -> Server | No
     except KeyboardInterrupt:
         print("User interrupted search")
         return None
+    return None
 
 
 def quick_print(

@@ -2,46 +2,72 @@ import json
 from copy import deepcopy
 
 from filters import get_default_filters
-from models import Options
+from models import DisplayLine, Options
+from object_grid.grid_layout import GridLayout
 from server_sort import get_default_sort
+from user_template import compile_template
 
 DEFAULT_OPTIONS: Options = {
     "filters": get_default_filters(),
     "server_sort": get_default_sort(),
     "display": {
-        "server_id": "0",
-        "host": "0",
-        "port": "0",
-        "ip": "0",
-        "name": "c",
-        "name_short": "f",
-        "region": "f",
-        "cc": "0",
-        "players": "f",
-        "max_players": "f",
-        "bots": "f",
-        "map": "c",
-        "game_types": "0",
-        "latitude": "0",
-        "longitude": "0",
-        "distance": "0",
-        "humans": "0",
-        "ping": "f",
-        "slots": "0",
-        "ip_port": "0",
-        "join_url": "0",
-        "last_played": "f",
-        "since_played": "f",
+        "grid_display": [
+            {"left": "{index}.", "middle": "{name_utrim}", "right": "", "empty": " "},
+            {"left": "", "middle": "{name_short}",
+                "right": "{ping}ms", "empty": " "},
+            {
+                "left": "{region} ({cc})",
+                "middle": " ",
+                "right": "{players}/{max_players} players",
+                "empty": " ",
+            },
+            {
+                "left": "{map}",
+                "middle": " ",
+                "right": "{bots} bots",
+                "empty": " ",
+            },
+            {
+                "left": "{last_played}",
+                "middle": " ",
+                "right": "{since_played} ago",
+                "empty": " ",
+            },
+        ],
+        "grid_display_compiled": None,
+        "join_display": [
+            {"left": "", "middle": "", "right": "", "empty": "-"},
+            {"left": "|", "middle": "{name_utrim}", "right": "|", "empty": " "},
+            {"left": "", "middle": "{name_short}",
+                "right": "{ping}ms", "empty": "-"},
+            {
+                "left": "{region} ({cc})",
+                "middle": " ",
+                "right": "{players}/{max_players} players",
+                "empty": " ",
+            },
+            {
+                "left": "{map}",
+                "middle": " ",
+                "right": "{bots} bots",
+                "empty": " ",
+            },
+            {
+                "left": "{last_played}",
+                "middle": " ",
+                "right": "{since_played} ago",
+                "empty": " ",
+            },
+        ],
+        "join_display_compiled": None,
     },
     "misc": {
         "always_ping": False,
         "auto_distance_calculation": True,
-        "border_server_name": True,
         "cache_uncletopia_state": True,
         "disable_colors": False,
         "compact_output": False,
         "fast_grid_calculation": False,
-        "forced_width": 0,
         "play_sound_on_join": True,
         "query_steam": True,
         "refresh_interval": 5,
@@ -58,19 +84,59 @@ def get_default_options() -> Options:
 
 
 def write_options(options: Options):
+    options_copy = deepcopy(options)
+    options_copy["display"]["grid_display_compiled"] = None
+    options_copy["display"]["join_display_compiled"] = None
     try:
         with open("options.json", "w") as f:
-            json.dump(options, f, indent=4)
+            json.dump(options_copy, f, indent=4)
     except Exception as e:
         print(f"Error writing options file: {e}")
+
+
+def compile_display_options(options: Options):
+    options["display"]["grid_display_compiled"] = [
+        {
+            "left": compile_template(line["left"]),
+            "middle": compile_template(line["middle"]),
+            "right": compile_template(line["right"]),
+            "empty": line["empty"],
+        }
+        for line in options["display"]["grid_display"]
+    ]
+    options["display"]["join_display_compiled"] = [
+        {
+            "left": compile_template(line["left"]),
+            "middle": compile_template(line["middle"]),
+            "right": compile_template(line["right"]),
+            "empty": line["empty"],
+        }
+        for line in options["display"]["join_display"]
+    ]
 
 
 def read_options() -> Options:
     try:
         with open("options.json", "r") as f:
             options: Options = json.load(f)
+        compile_display_options(options)
         return options
     except FileNotFoundError:
         print("No options file found, creating a new one.")
         write_options(DEFAULT_OPTIONS)
-        return get_default_options()
+        options = get_default_options()
+        compile_display_options(options)
+        return options
+
+
+def display_lines_to_string(options: list[DisplayLine]):
+    """
+    Print the display options.
+    """
+    grid = GridLayout()
+    grid_element = grid.new_element()
+    for line in options:
+        grid_element.add_line(
+            line["left"], line["middle"], line["right"], line["empty"]
+        )
+    return grid.compile_grid()

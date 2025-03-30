@@ -1,7 +1,14 @@
 from typing import Any
 
 from filters import apply_pre_filters
-from models import Options, Server
+from models import DisplayLine, Options, Server
+from options import (
+    compile_display_options,
+    display_lines_to_string,
+    get_default_options,
+    read_options,
+    write_options,
+)
 from server_main import (
     format_last_played,
     get_uncle,
@@ -142,40 +149,151 @@ def filter_menu(args: Any, options: Options):
             sub_filter_menu(args, options, field)
 
 
-def display_menu(args: Any, options: Options):
-    display_options = options["display"]
-    possible_options = [x for x in display_options.keys()]
-    possible_options_max_length = max([len(x) for x in possible_options])
-    user_mode = "f"
-    tip = "Full"
+def new_display_line(display_line: DisplayLine | None = None) -> DisplayLine:
+    if display_line is None:
+        new_line: DisplayLine = {
+            "left": "",
+            "middle": "",
+            "right": "",
+            "empty": " ",
+        }
+    else:
+        new_line = display_line.copy()
+    possible_fillables: list[str] = [x for x in Server.__annotations__.keys()]
+    possible_fillables.append("index")
+    possible_fillables.append("name_utrim")
+    possible_fillables.append("cc_emoji")
     user_back = False
     while not user_back:
-        print("Display options:")
-        for i, field in enumerate(possible_options, start=1):
-            print(
-                f"  {justify_strings(possible_options_max_length + 6, left=f'{i + 1}. {field}:')}"
-                + f"{display_options[field]}"
-            )
-        # choice = input("Full mode: Enter choice (b for back): ")
-        choice = input(
-            f"{tip} mode: Enter choice (b for back, c to change mode): ")
+        print("Edit line:")
+        print(f"  1. Left: {new_line['left']}")
+        print(f"  2. Middle: {new_line['middle']}")
+        print(f"  3. Right: {new_line['right']}")
+        print(f'  4. Empty: "{new_line["empty"]}"')
+        choice = input("Enter choice (b for back, f for fill options): ")
+        if choice.lower() == "b" or choice.lower() == "back":
+            user_back = True
+            return new_line
+        elif choice.lower() == "f":
+            print("Fill options:")
+            for field in possible_fillables:
+                print(f"  {field}")
+        elif choice == "1":
+            new_line["left"] = input("Enter new left: ")
+        elif choice == "2":
+            new_line["middle"] = input("Enter new middle: ")
+        elif choice == "3":
+            new_line["right"] = input("Enter new right: ")
+        elif choice == "4":
+            user_empty = input("Enter new empty: ")
+            if len(user_empty) != 1:
+                print("Empty must be a single character")
+                continue
+            new_line["empty"] = user_empty
+        else:
+            print("Invalid choice")
+    return new_line
+
+
+def display_sub_menu(options: Options, field: str):
+    if field != "grid_display" and field != "join_display":
+        raise ValueError("Invalid field")
+    user_back = False
+    display_options = options["display"][field]
+    while not user_back:
+        display_options_lines = display_lines_to_string(display_options)
+        display_options_lines_split = display_options_lines.splitlines()
+        print(f"Display options for {field}:")
+        print(display_options_lines)
+        print("  1. Add line")
+        print("  2. Edit line")
+        print("  3. Remove line")
+        choice = input("Enter choice (b for back): ")
         if choice.lower() == "b" or choice.lower() == "back":
             user_back = True
             return
-        elif choice.lower() == "c":
-            if user_mode == "f":
-                user_mode = "c"
-                tip = "Compact"
+        elif choice == "1":
+            for i, line in enumerate(display_options_lines_split[:-1]):
+                print(f"  {i}. " + line)
+            print("     " + display_options_lines_split[-1])
+            line_number = input(
+                "Enter line number to add after (empty for end, b for back): "
+            )
+            if line_number.lower() == "b" or line_number.lower() == "back":
+                continue
+            elif len(line_number) == 0:
+                display_options.append(new_display_line())
+            elif (
+                line_number.isdigit()
+                and int(line_number) >= 0
+                and int(line_number) <= len(display_options)
+            ):
+                display_options.insert(int(line_number), new_display_line())
             else:
-                user_mode = "f"
-                tip = "Full"
-        elif (
-            choice.isdigit()
-            and int(choice) - 1 < len(possible_options)
-            and int(choice) > 0
-        ):
-            field = possible_options[int(choice) - 1]
-            display_options[field] = user_mode
+                print("Invalid line number")
+                continue
+        elif choice == "2":
+            print("     " + display_options_lines_split[0])
+            for i, line in enumerate(display_options_lines_split[1:-1], start=1):
+                print(f"  {i + 1}. " + line)
+            print("     " + display_options_lines_split[-1])
+            line_number = input("Enter line number to edit (b for back): ")
+            if line_number.lower() == "b" or line_number.lower() == "back":
+                continue
+            elif (
+                line_number.isdigit()
+                and int(line_number) > 0
+                and int(line_number) <= len(display_options)
+            ):
+                line_number = int(line_number) - 1
+                display_options[line_number] = new_display_line(
+                    display_options[line_number]
+                )
+            else:
+                print("Invalid line number")
+                continue
+        elif choice == "3":
+            print("     " + display_options_lines_split[0])
+            for i, line in enumerate(display_options_lines_split[1:-1], start=1):
+                print(f"  {i}. " + line)
+            print("     " + display_options_lines_split[-1])
+            line_number = input("Enter line number to remove (b for back): ")
+            if line_number.lower() == "b" or line_number.lower() == "back":
+                continue
+            elif (
+                line_number.isdigit()
+                and int(line_number) > 0
+                and int(line_number) <= len(display_options)
+            ):
+                _ = display_options.pop(int(line_number) - 1)
+            else:
+                print("Invalid line number")
+                continue
+        else:
+            print("Invalid choice")
+            continue
+
+
+def display_menu(args: Any, options: Options):
+    display_options = options["display"]
+    user_back = False
+    while not user_back:
+        print("Display options:")
+        print("  1. Grid display")
+        print(display_lines_to_string(display_options["grid_display"]))
+        print("  2. Join display")
+        print(display_lines_to_string(display_options["join_display"]))
+        choice = input("Enter choice (b for back): ")
+        if choice.lower() == "b" or choice.lower() == "back":
+            user_back = True
+            compile_display_options(options)
+            return
+        if choice == "1":
+            display_sub_menu(options, "grid_display")
+        elif choice == "2":
+            display_sub_menu(options, "join_display")
+        else:
+            print("Invalid choice")
 
 
 def sort_menu(args: Any, options: Options):
@@ -303,7 +421,7 @@ def main_menu(args: Any, servers: list[Server], options: Options):
                 pretty_print_server(last_server_joined, options)
                 print()
             last_server_joined = auto_join(args, pre_filtered_servers, options)
-            if last_server_joined is not None:
+            if last_server_joined is not None and not args.disable_join:
                 last_server_joined_played = last_server_joined["last_played"]
                 update_last_played(last_server_joined)
         elif choice == "2":

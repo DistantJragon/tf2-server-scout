@@ -1,5 +1,7 @@
 from typing import TypedDict
 
+from user_template import TemplateFunction
+
 
 class Server(TypedDict):
     server_id: int
@@ -22,7 +24,6 @@ class Server(TypedDict):
     ping: float
     slots: int
     ip_port: str
-    join_url: str
     last_played: float
     since_played: float
 
@@ -57,41 +58,34 @@ class ServerFilter(TypedDict):
     since_played: RangeFilter
 
 
+class DisplayLine(TypedDict):
+    left: str
+    middle: str
+    right: str
+    empty: str
+
+
+class DisplayLineCompiled(TypedDict):
+    left: TemplateFunction
+    middle: TemplateFunction
+    right: TemplateFunction
+    empty: str
+
+
 class DisplayOptions(TypedDict):
-    server_id: str
-    host: str
-    port: str
-    ip: str
-    name: str
-    name_short: str
-    region: str
-    cc: str
-    players: str
-    max_players: str
-    bots: str
-    map: str
-    game_types: str
-    latitude: str
-    longitude: str
-    distance: str
-    humans: str
-    ping: str
-    slots: str
-    ip_port: str
-    join_url: str
-    last_played: str
-    since_played: str
+    grid_display: list[DisplayLine]
+    grid_display_compiled: list[DisplayLineCompiled] | None
+    join_display: list[DisplayLine]
+    join_display_compiled: list[DisplayLineCompiled] | None
 
 
 class MiscOptions(TypedDict):
     always_ping: bool
     auto_distance_calculation: bool
-    border_server_name: bool
     cache_uncletopia_state: bool
     disable_colors: bool
     compact_output: bool
     fast_grid_calculation: bool
-    forced_width: int
     play_sound_on_join: bool
     query_steam: bool
     refresh_interval: float
