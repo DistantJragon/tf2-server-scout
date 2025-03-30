@@ -21,6 +21,7 @@ class Server(TypedDict):
     longitude: float
     distance: float
     humans: int
+    # Fields not given by the Uncletopia API
     ping: float
     slots: int
     ip_port: str
