@@ -235,7 +235,7 @@ def display_sub_menu(options: Options, field: str):
         elif choice == "2":
             print("     " + display_options_lines_split[0])
             for i, line in enumerate(display_options_lines_split[1:-1], start=1):
-                print(f"  {i + 1}. " + line)
+                print(f"  {i}. " + line)
             print("     " + display_options_lines_split[-1])
             line_number = input("Enter line number to edit (b for back): ")
             if line_number.lower() == "b" or line_number.lower() == "back":
