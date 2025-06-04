@@ -176,8 +176,8 @@ def new_display_line(display_line: DisplayLine | None = None) -> DisplayLine:
             return new_line
         elif choice.lower() == "f":
             print("Fill options:")
-            for field in possible_fillables:
-                print(f"  {field}")
+            for field in sorted(possible_fillables):
+                print(f"  {{{field}}}")
         elif choice == "1":
             new_line["left"] = input("Enter new left: ")
         elif choice == "2":
