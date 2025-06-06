@@ -442,7 +442,7 @@ def main_menu(args: Any, servers: list[Server], options: Options):
                 last_server_joined["last_played"] = last_server_joined_played
                 last_server_joined_played = None
                 print(
-                    f'The server that was "joined" has been reset to {format_last_played(last_server_joined)}'
+                    f'{last_server_joined["name"]} has been reset to {format_last_played(last_server_joined)}'
                 )
         elif choice == "5":
             # Update using Steam info
