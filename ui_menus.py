@@ -420,8 +420,11 @@ def main_menu(args: Any, servers: list[Server], options: Options):
                 print("Last played server: ")
                 pretty_print_server(last_server_joined, options)
                 print()
-            last_server_joined = auto_join(args, pre_filtered_servers, options)
-            if last_server_joined is not None and not args.disable_join:
+
+            last_server_joined_temp = auto_join(
+                args, pre_filtered_servers, options)
+            if last_server_joined_temp is not None and not args.disable_join:
+                last_server_joined = last_server_joined_temp
                 last_server_joined_played = last_server_joined["last_played"]
                 update_last_played(last_server_joined)
         elif choice == "2":
@@ -442,7 +445,7 @@ def main_menu(args: Any, servers: list[Server], options: Options):
                 last_server_joined["last_played"] = last_server_joined_played
                 last_server_joined_played = None
                 print(
-                    f'{last_server_joined["name"]} has been reset to {format_last_played(last_server_joined)}'
+                    f"{last_server_joined['name']} has been reset to {format_last_played(last_server_joined)}"
                 )
         elif choice == "5":
             # Update using Steam info
