@@ -297,7 +297,7 @@ def display_menu(args: Any, options: Options):
 
 
 def sort_menu(args: Any, options: Options):
-    sort_choices = [x for x in options["display"].keys()]
+    sort_choices = [x for x in Server.__annotations__.keys()]
     user_back = False
     while not user_back:
         print("Sort by:")
