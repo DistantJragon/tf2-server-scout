@@ -253,16 +253,23 @@ def format_since_played(server: Server) -> str:
 
 
 def join_server(server: Server | str):
+    url = ""
     if isinstance(server, str):
-        _ = webbrowser.open(server)
+        url = server
     else:
-        _ = webbrowser.open(compile_join_url(server))
-        # update_last_played(server)
-        # Updating last played on join is not done in this function,
-        # because the server print happens after this function is called,
-        # because an attempt to join a server should be made without any delay.
-        # If last_played is updated here, the server print will show the last played time as the current time
-        # (not very useful).
+        url = compile_join_url(server)
+    # check windows or linux
+    if system() == "Windows":
+        webbrowser.open(url)
+    else:
+        subprocess.run(["steam", url])
+
+    # update_last_played(server)
+    # Updating last played on join is not done in this function,
+    # because the server print happens after this function is called,
+    # because an attempt to join a server should be made without any delay.
+    # If last_played is updated here, the server print will show the last played time as the current time
+    # (not very useful).
 
 
 def refresh_since_played(server: Server):

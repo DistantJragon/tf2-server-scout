@@ -3,12 +3,8 @@ from typing import Any
 
 from filters import apply_filters
 from models import Options, Server
-from server_main import (
-    get_uncle,
-    join_server,
-    refresh_since_played_all,
-    update_servers_with_steam_info,
-)
+from server_main import (get_uncle, join_server, refresh_since_played_all,
+                         update_servers_with_steam_info)
 from server_print import pretty_print_server, print_server_grid
 from server_sort import sort_servers
 
@@ -63,6 +59,9 @@ def auto_join(args: Any, servers: list[Server], options: Options) -> Server | No
             if not args.disable_join:
                 join_server(server_to_join)
             pretty_print_server(server_to_join, options)
+            if args.disable_join or misc["auto_join_command"]:
+                print(
+                    f"Join command:\nconnect {server_to_join['ip']}:{server_to_join['port']}")
             if misc["play_sound_on_join"]:
                 play_sound()
             return server_to_join

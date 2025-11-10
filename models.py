@@ -83,6 +83,7 @@ class DisplayOptions(TypedDict):
 class MiscOptions(TypedDict):
     always_ping: bool
     auto_distance_calculation: bool
+    auto_join_command: bool
     cache_uncletopia_state: bool
     disable_colors: bool
     compact_output: bool

@@ -64,6 +64,7 @@ DEFAULT_OPTIONS: Options = {
     "misc": {
         "always_ping": False,
         "auto_distance_calculation": True,
+        "auto_join_command": False,
         "cache_uncletopia_state": True,
         "disable_colors": False,
         "compact_output": False,
